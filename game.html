@@ -119,7 +119,7 @@
     const Cache = {
       _audio: new Map(),
       _image: new Map(),
-      audio(src, volume = 1) {
+      audio(src, volume = 0.2) {
         if (!this._audio.has(src)) {
           const a = new Audio(src);
           a.volume = volume;
