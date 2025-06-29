@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <title>My Game</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+
+    body{ 
+      font-family:Arial,ans-serif;
+      background:#f5f9fc;
+      margin:0;
+      padding:20px;
+      color:#333
+    }
+
+    header,footer{
+      background:#fff;
+      border:1px solid #d9e2ec;
+      margin-bottom:20px;
+      padding:20px;
+      border-radius:8px;
+      box-shadow:1px 1px 4px rgba(0,0,0,.05)
+    }
+
+    header{
+      background:linear-gradient(90deg,#a3cef1,#d6e9f9)
+    }
+
+    header h1{
+      margin:0
+    }
+
+    .center-wrap{
+      width:640px;margin:0 auto;position:relative
+    }
+
+    .instructions{
+      position:absolute;left:-180px;top:50%;transform:translateY(-50%);width:160px;font-size:.85em;line-height:1.4
+    }
+
+    .instructions strong{
+      display:block;margin-bottom:5px
+    }
+
+    .game-box{
+      width:640px;height:426px;background:#ffffff;border:1px solid #ccc;position:relative
+    }
+    
+    #startButton{
+      position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);padding:12px 48px;background:#6fa8dc;color:#fff;border:none;border-radius:5px;font-size:1em;cursor:pointer
+    }
+
+    #startButton:hover{
+      background:#4f94d4
+    }
+
+    #gameCanvas{
+      width:640px;height:426px;display:none
+    }
+
+    .link-button-wrapper{
+      text-align:center;margin:20px 0 30px
+    }
+
+    .link-button{
+      display:inline-block;padding:10px 20px;background:#6fa8dc;color:#fff;border-radius:5px;text-decoration:none
+    }
+
+    .link-button:hover{
+      background:#4f94d4
+    }
+
+    footer{
+      text-align:center;background:#a3cef1;color:#333
+    }
+  </style>
+</head>
+
+<body>
+  <header><h1>My Game</h1></header>
+
+  <section class="center-wrap">
+    <div class="instructions">
+      <strong>操作方法</strong>
+      <br />← / →：移動
+      <br />Space：開始
+    </div>
+
+    <div class="game-box">
+      <canvas id="gameCanvas" width="640" height="426"></canvas>
+      <button id="startButton">Start</button>
+    </div>
+  </section>
+
+  <div class="link-button-wrapper">
+    <a href="index.html" class="link-button">Back to About Me</a>
+  </div>
+
+  <footer>&copy; 2025 Yuto Nakatsuji. All rights reserved.</footer>
+
+  <script>
+
+    const CONFIG = {
+      player: {speed: 3, radius: 10, eye: {offsetX: 3, offsetY: 3, radius: 2}, mouth: {radius: 3, offsetY: 2}},
+      paddle: {speed: 6, width: 75, height: 10},
+      bricks: {rows: 3, cols: 5, width: 75, height: 20, padding: 10, offsetTop: 30},
+      lifeMax: 3,
+      scoresToLevelUp: 15,
+      assets: {
+        crash: [...Array(9)].map((_, i) => `sounds/Crash${i + 1}.mp3`),
+        death: 'sounds/Death.mp3',
+        bgm: 'sounds/Bgm.mp3',
+        hearts: [...Array(4)].map((_, i) => `image/heart${i}.png`),
+        background: 'image/Background.png'
+      }
+    };
+
+    const Cache = {
+      _audio: new Map(),
+      _image: new Map(),
+      audio(src, volume = 1) {
+        if (!this._audio.has(src)) {
+          const a = new Audio(src);
+          a.volume = volume;
+          this._audio.set(src, a);
+        }
+        return this._audio.get(src).cloneNode();
+      },
+      image(src) {
+        if (!this._image.has(src)) {
+          const img = new Image();
+          img.src = src;
+          this._image.set(src, img);
+        }
+        return this._image.get(src);
+      }
+    };
+
+    class Sprite {
+      constructor(canvas) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+      }
+    }
+
+    class Player extends Sprite {
+      constructor(canvas, score, lives) {
+        super(canvas);
+        this.score = score;
+        this.lives = lives;
+        this.reset();
+        this.crashSounds = CONFIG.assets.crash.map(src => Cache.audio(src, 0.05));
+        this.deathSound = Cache.audio(CONFIG.assets.death, 0.4);
+      }
+
+      reset() {
+        this.x = this.canvas.width / 2;
+        this.y = this.canvas.height - 30;
+        this.dx = CONFIG.player.speed;
+        this.dy = -CONFIG.player.speed;
+        this.isHappy = true;
+      }
+
+      playRandomCrash() {
+        this.crashSounds[Math.floor(Math.random() * this.crashSounds.length)].play();
+      }
+
+      draw() {
+        const { radius, eye, mouth } = CONFIG.player;
+        const ctx = this.ctx;
+
+        // プレイヤーの描画
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, radius, 0, Math.PI * 2);
+        ctx.fillStyle = '#efb6d4';
+        ctx.fill();
+        ctx.strokeStyle = '#d74894';
+        ctx.stroke();
+
+        [-1, 1].forEach(sign => {
+          ctx.beginPath();
+          ctx.arc(
+            this.x + eye.offsetX * sign,
+            this.y - eye.offsetY,
+            eye.radius,
+            0,
+            Math.PI * 2
+          );
+          ctx.fillStyle = 'black';
+          ctx.fill();
+          ctx.strokeStyle = 'white';
+          ctx.stroke();
+        });
+
+        if (this.isHappy) {
+          ctx.beginPath();
+          ctx.arc(this.x, this.y + mouth.offsetY, mouth.radius, 0, Math.PI, false);
+          ctx.strokeStyle = 'black';
+          ctx.stroke();
+        }
+
+        // 位置更新
+        this.x += this.dx;
+        this.y += this.dy;
+      }
+
+      reflectHorizontal() { this.dx = -this.dx; }
+      reflectVertical()   { this.dy = -this.dy; }
+
+      // プレイヤー・パドル・壁の当たり判定
+      handleCollisions(paddleX) {
+        const r = CONFIG.player.radius;
+        // 左右の壁
+        if (this.x + r >= this.canvas.width || this.x - r <= 0) this.reflectHorizontal();
+        // 上壁
+        if (this.y - r <= 0) {
+          this.reflectVertical();
+          this.toggleMood();
+        }
+        // パドル
+        const { width: pw, height: ph } = CONFIG.paddle;
+        if (this.y + r >= this.canvas.height - ph && this.x >= paddleX && this.x <= paddleX + pw) {
+          this.reflectVertical();
+          this.toggleMood();
+        }
+        // 底抜け
+        if (this.y + r > this.canvas.height) {
+          this.lives.decrease();
+          this.deathSound.play();
+          this.reset();
+        }
+      }
+
+      // ブロックとの当たり判定
+      brickHit(brick) {
+        this.reflectVertical();
+        brick.status = 0;
+        this.score.add();
+        this.toggleMood();
+        this.playRandomCrash();
+      }
+
+      toggleMood() { this.isHappy = !this.isHappy; }
+    }
+
+    class Paddle extends Sprite {
+      constructor(canvas) {
+        super(canvas);
+        this.x = (canvas.width - CONFIG.paddle.width) / 2;
+      }
+
+      draw(rightPressed, leftPressed) {
+        const ctx = this.ctx;
+        const { width, height, speed } = CONFIG.paddle;
+        ctx.fillStyle = '#b55233';
+        ctx.fillRect(this.x, this.canvas.height - height, width, height);
+        ctx.strokeStyle = 'white';
+        ctx.strokeRect(this.x, this.canvas.height - height, width, height);
+
+        if (rightPressed && this.x < this.canvas.width - width)   this.x += speed;
+        if (leftPressed  && this.x > 0)                           this.x -= speed;
+      }
+    }
+
+    class Brick extends Sprite {
+      constructor(canvas, x, y) {
+        super(canvas);
+        this.x = x;
+        this.y = y;
+        this.status = 1;
+      }
+
+      draw() {
+        if (!this.status) return;
+        const ctx = this.ctx;
+        const { width, height } = CONFIG.bricks;
+        ctx.fillStyle = '#b55233';
+        ctx.fillRect(this.x, this.y, width, height);
+        ctx.strokeStyle = 'white';
+        ctx.strokeRect(this.x, this.y, width, height);
+      }
+
+      get rect() {
+        return { x: this.x, y: this.y, w: CONFIG.bricks.width, h: CONFIG.bricks.height };
+      }
+    }
+
+    class Score extends Sprite {
+      constructor(canvas) {
+        super(canvas);
+        this.value = 0;
+      }
+      add() { this.value += 1; }
+      draw() {
+        const ctx = this.ctx;
+        ctx.font = '13px Arial';
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = 'black';
+        ctx.fillStyle = 'white';
+        ctx.strokeText(`Score: ${this.value}`, 15, 25);
+        ctx.fillText(`Score: ${this.value}`, 15, 25);
+      }
+    }
+
+    class Lives extends Sprite {
+      constructor(canvas) {
+        super(canvas);
+        this.value = CONFIG.lifeMax;
+        this.heartImages = CONFIG.assets.hearts.map(src => Cache.image(src));
+        this.imgX = this.canvas.width - 60 - 20;
+        this.imgY = 10;
+      }
+      decrease() { if (this.value > 0) this.value -= 1; }
+      draw() {
+        this.ctx.drawImage(this.heartImages[this.value], this.imgX, this.imgY, 60, 20);
+      }
+    }
+
+    // ゲーム全体を管理するクラス
+    class Game {
+      constructor(canvasId) {
+        this.canvas = document.getElementById(canvasId);
+        this.ctx = this.canvas.getContext('2d');
+
+        // エンティティ生成
+        this.score  = new Score(this.canvas);
+        this.lives  = new Lives(this.canvas);
+        this.player = new Player(this.canvas, this.score, this.lives);
+        this.paddle = new Paddle(this.canvas);
+
+        // ブロック生成
+        this.bricks = this.createBricks();
+
+        // 入力状態
+        this.rightPressed = false;
+        this.leftPressed  = false;
+
+        // BGM
+        this.bgm = Cache.audio(CONFIG.assets.bgm, 0.05);
+
+        // 背景画像
+        this.background = Cache.image(CONFIG.assets.background);
+
+        this.bindEvents();
+      }
+
+      createBricks() {
+        const B = CONFIG.bricks;
+        const fieldWidth = B.cols * B.width + (B.cols - 1) * B.padding;
+        const offsetLeft = (this.canvas.width - fieldWidth) / 2;
+        const bricks = [];
+        for (let c = 0; c < B.cols; c++) {
+          bricks[c] = [];
+          for (let r = 0; r < B.rows; r++) {
+            bricks[c][r] = new Brick(
+              this.canvas,
+              c * (B.width + B.padding) + offsetLeft,
+              r * (B.height + B.padding) + B.offsetTop
+            );
+          }
+        }
+        return bricks;
+      }
+
+      bindEvents() {
+        const onKey = state => e => {
+          if (["Right","ArrowRight"].includes(e.key)) this.rightPressed = state;
+          if (["Left","ArrowLeft"].includes(e.key))   this.leftPressed  = state;
+        };
+        document.addEventListener('keydown', onKey(true));
+        document.addEventListener('keyup',   onKey(false));
+
+        document.getElementById('startButton').addEventListener('click', () => {
+          this.start();
+        });
+      }
+
+      start() {
+        document.getElementById('startButton').style.display = 'none';
+        this.canvas.style.display = 'block';
+        this.bgm.loop = true;
+        this.bgm.play();
+        this.running = true;
+        this.loop();
+      }
+
+      loop() {
+        if (!this.running) return;
+        this.update();
+        this.render();
+        this.frameId = requestAnimationFrame(() => this.loop());
+      }
+
+      update() {
+        this.player.handleCollisions(this.paddle.x);
+        // ブロック衝突
+        for (const col of this.bricks) {
+          for (const brick of col) {
+            if (brick.status && this.hitTest(brick.rect)) this.player.brickHit(brick);
+          }
+        }
+        // レベルアップ
+        if (this.score.value && this.score.value % CONFIG.scoresToLevelUp === 0) {
+          if (this.allBricksGone()) this.nextLevel();
+        }
+        // ゲームオーバー
+        if (this.lives.value === 0) {
+          this.end(false);
+        }
+      }
+
+      render() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.drawImage(this.background, 0, 0, this.canvas.width, this.canvas.height);
+
+        this.player.draw();
+        this.paddle.draw(this.rightPressed, this.leftPressed);
+        this.bricks.flat().forEach(b => b.draw());
+        this.lives.draw();
+        this.score.draw();
+      }
+
+      hitTest({x,y,w,h}) {
+        const r = CONFIG.player.radius;
+        return (
+          this.player.x >= x - r && this.player.x <= x + w + r &&
+          this.player.y >= y - r && this.player.y <= y + h + r
+        );
+      }
+
+      allBricksGone() { return this.bricks.flat().every(b => !b.status); }
+
+      nextLevel() {
+        this.bricks = this.createBricks();
+        if (this.lives.value < CONFIG.lifeMax) this.lives.value += 1;
+      }
+
+      end(win) {
+
+          this.running = false;
+
+          if (this.frameId !== null) {
+            cancelAnimationFrame(this.frameId);
+            this.frameId = null;
+          }
+
+          this.bgm.pause();
+          this.bgm.currentTime = 0;
+
+          alert(win ? 'You Win!!!' : 'Game Over!!!');
+          window.location.reload(true)
+      }
+    }
+    const game = new Game('gameCanvas');
+  </script>
+</body>
+</html>
