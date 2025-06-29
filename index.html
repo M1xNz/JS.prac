@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>About me</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f5f9fc;
+      color: #333;
+      line-height: 1.6;
+      margin: 0;
+      padding: 20px;
+      opacity: 0;
+      transition: opacity 1s ease-in;
+    }
+
+    header, section, footer {
+      background-color: #ffffff;
+      border: 1px solid #d9e2ec;
+      margin-bottom: 20px;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 1px 1px 4px rgba(0,0,0,0.05);
+    }
+
+    header {
+      background: linear-gradient(to right, #a3cef1, #d6e9f9);
+      color: #333;
+    }
+
+    header h1, header p {
+      margin: 0;
+    }
+
+    h1, h2 {
+      margin-top: 0;
+    }
+
+    .accordion-header {
+      background-color: #e2f0fb;
+      cursor: default;
+      padding: 10px 40px 10px 10px;
+      border-radius: 4px;
+      color: #333;
+      position: relative;
+    }
+
+    .toggle-button {
+      position: absolute;
+      top: 50%;
+      right: 10px;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: #333;
+      font-size: 1.2em;
+      cursor: pointer;
+    }
+
+    .toggle-button:hover {
+      color: #4f94d4;
+    }
+
+    .accordion-content {
+      display: block;
+      margin-top: 10px;
+    }
+
+    .link-button-wrapper {
+      text-align: center;
+      margin: 20px 0 30px 0;
+    }
+
+    .link-button {
+      display: inline-block;
+      padding: 10px 20px;
+      background-color: #6fa8dc;
+      color: white;
+      text-decoration: none;
+      border-radius: 5px;
+    }
+
+    .link-button:hover {
+      background-color: #4f94d4;
+    }
+
+    footer {
+      text-align: center;
+      background-color: #a3cef1;
+      color: #333;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h1>中辻 優翔 -Yuto Nakatsuji-</h1>
+  <p>Email: dc2dm0@gmail.com</p>
+</header>
+
+<section>
+  <div class="accordion-header">
+    学歴
+    <button class="toggle-button">▼</button>
+  </div>
+  <div class="accordion-content">
+    <p>京都府立東舞鶴高等学校 普通科<br>
+       2020年 4月 入学<br>
+       2023年 3月 卒業</p>
+    <p>関西学院大学 総合政策学部 メディア情報学科<br>
+       2023年 4月 入学<br>
+       2027年 3月 卒業予定</p>
+  </div>
+</section>
+
+<section>
+  <div class="accordion-header">
+    資格
+    <button class="toggle-button">▼</button>
+  </div>
+  <div class="accordion-content">
+    <ul>
+      <li>2021年 11月 実用英語技能検定2級 合格</li>
+      <li>2025年 06月 ITパスポート 合格</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <div class="accordion-header">
+    講義で学習したPG言語・FW
+    <button class="toggle-button">▼</button>
+  </div>
+  <div class="accordion-content">
+    <ul>
+      <li>HTML/CSS</li>
+      <li>JavaScript</li>
+      <li>Java</li>
+      <li>C言語</li>
+      <li>Python</li>
+      <li>SQL</li>
+    </ul>
+  </div>
+</section>
+
+<div class="link-button-wrapper">
+  <a href="game.html" class="link-button">My Game Page</a>
+</div>
+
+<footer>
+  <p>&copy; 2025 Yuto Nakatsuji. All rights reserved.</p>
+</footer>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  document.body.style.opacity = 1;
+});
+
+// トグルボタンで開閉
+const toggleButtons = document.querySelectorAll('.toggle-button');
+
+toggleButtons.forEach(button => {
+  button.addEventListener('click', () => {
+    const content = button.parentElement.nextElementSibling;
+    if (content.style.display === 'none') {
+      content.style.display = 'block';
+      button.textContent = '▼';
+    } else {
+      content.style.display = 'none';
+      button.textContent = '▲';
+    }
+  });
+});
+</script>
+
+</body>
+</html>
